@@ -5,8 +5,13 @@ on:
     branches: [ exteragram-ios-port ]
     paths:
       - '.github/workflows/build-exteragram-ios.yml'
-      - 'exteragram-ios/**'
+      - 'exteragram-ios/apply.sh'
+      - 'exteragram-ios/overlay/**'
   workflow_dispatch:
+
+concurrency:
+  group: exteragram-ios-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
