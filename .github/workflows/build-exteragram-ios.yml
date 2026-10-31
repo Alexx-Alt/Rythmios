@@ -64,9 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -x port-overlay/exteragram-ios/apply.sh ]; then
-            port-overlay/exteragram-ios/apply.sh "$GITHUB_WORKSPACE/telegram-ios"
-          fi
+          bash port-overlay/exteragram-ios/apply.sh "$GITHUB_WORKSPACE/telegram-ios"
 
       - name: Build unsigned IPA
         shell: bash
