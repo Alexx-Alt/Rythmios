@@ -34,6 +34,10 @@ jobs:
           s = s.replace('deploymentTarget: "16.1"', 'deploymentTarget: "16.2"')
           p.write_text(s)
           PY
+          /usr/libexec/PlistBuddy -c 'Delete :CFBundleExecutable' rhythm_ios/Rhythm/Info.plist || true
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleExecutable string Rhythm' rhythm_ios/Rhythm/Info.plist
+          /usr/libexec/PlistBuddy -c 'Delete :CFBundleExecutable' rhythm_ios/RhythmLive/Info.plist || true
+          /usr/libexec/PlistBuddy -c 'Add :CFBundleExecutable string RhythmLive' rhythm_ios/RhythmLive/Info.plist
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -59,6 +63,16 @@ jobs:
             CODE_SIGN_IDENTITY='' \
             CONFIGURATION_BUILD_DIR="$PWD/build/app" \
             build
+
+      - name: Validate bundle metadata
+        working-directory: rhythm_ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' build/app/Rhythm.app/Info.plist)" = "Rhythm"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' build/app/Rhythm.app/PlugIns/RhythmLive.appex/Info.plist)" = "RhythmLive"
+          test -f build/app/Rhythm.app/Rhythm
+          test -f build/app/Rhythm.app/PlugIns/RhythmLive.appex/RhythmLive
 
       - name: Package IPA
         working-directory: rhythm_ios
