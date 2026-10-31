@@ -45,6 +45,21 @@ jobs:
           sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app/Contents/Developer"
           xcodebuild -version
 
+      - name: Patch Swiftgram build configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd telegram-ios
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('build-system/appstore-configuration.json')
+          data = json.loads(p.read_text())
+          data.setdefault('sg_config', '{}')
+          p.write_text(json.dumps(data, indent=4) + '\n')
+          print('sg_config:', data['sg_config'])
+          PY
+
       - name: Apply exteraGram iOS overlay
         shell: bash
         run: |
