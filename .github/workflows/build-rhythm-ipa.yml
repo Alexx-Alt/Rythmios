@@ -27,6 +27,13 @@ jobs:
           PY
           unzip -q project.zip
           test -f rhythm_ios/project.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('rhythm_ios/project.yml')
+          s = p.read_text()
+          s = s.replace('deploymentTarget: "16.1"', 'deploymentTarget: "16.2"')
+          p.write_text(s)
+          PY
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -41,7 +48,6 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf build
-          mkdir -p build/app
           xcodebuild \
             -project Rhythm.xcodeproj \
             -scheme Rhythm \
@@ -52,7 +58,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY='' \
             CONFIGURATION_BUILD_DIR="$PWD/build/app" \
-            clean build
+            build
 
       - name: Package IPA
         working-directory: rhythm_ios
