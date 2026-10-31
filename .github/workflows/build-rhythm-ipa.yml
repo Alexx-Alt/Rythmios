@@ -1,0 +1,77 @@
+name: Build Rhythm unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - '.bundle/**'
+      - '.github/workflows/build-rhythm-ipa.yml'
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rebuild project archive
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, pathlib
+          parts = sorted(pathlib.Path('.bundle').glob('part_*.b64'))
+          assert parts, 'bundle parts not found'
+          data = ''.join(p.read_text().strip() for p in parts)
+          pathlib.Path('project.zip').write_bytes(base64.b64decode(data))
+          PY
+          unzip -q project.zip
+          test -f rhythm_ios/project.yml
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: rhythm_ios
+        run: xcodegen generate
+
+      - name: Build unsigned app
+        working-directory: rhythm_ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build
+          mkdir -p build/app
+          xcodebuild \
+            -project Rhythm.xcodeproj \
+            -scheme Rhythm \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            CONFIGURATION_BUILD_DIR="$PWD/build/app" \
+            clean build
+
+      - name: Package IPA
+        working-directory: rhythm_ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="build/app/Rhythm.app"
+          test -d "$APP_PATH"
+          rm -rf build/Payload build/Rhythm.ipa
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/Rhythm.app
+          cd build
+          /usr/bin/zip -qry Rhythm.ipa Payload
+          ls -lh Rhythm.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rhythm-unsigned-ipa
+          path: rhythm_ios/build/Rhythm.ipa
+          if-no-files-found: error
+          retention-days: 30
